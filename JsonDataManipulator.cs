@@ -42,7 +42,7 @@ namespace NZBStatusUI
 
         public decimal MBLeft
         {
-            get { return GetRootValue<decimal>("mbleft"); }
+            get { return GetCurrentSlotValue<decimal>("mbleft"); }
         }
 
         public int TotalPercentage
@@ -118,23 +118,23 @@ namespace NZBStatusUI
             JToken token = _jsonString.SelectToken(key);
             if (token != null && new JRaw(token).Value.ToString() != string.Empty)
             {
-               
-                
+
+
                 var value = token.Value<TClassType>();
                 return value;
             }
             return default(TClassType);
         }
 
-        private TClassType GetCurrentSlotValue<TClassType>(string key)
+        private TClass GetCurrentSlotValue<TClass>(string key)
         {
             if (_slots.Count > 0)
             {
                 var token = _slots[0].SelectToken(key);
-                var value = token != null ? token.Value<TClassType>() : default(TClassType);
+                var value = token != null ? token.Value<TClass>() : default(TClass);
                 return value;
             }
-            return default(TClassType);
+            return default(TClass);
         }
 
         public JsonDataManipulator(string url, string apiKey)
@@ -142,8 +142,8 @@ namespace NZBStatusUI
         { }
 
         public JsonDataManipulator(string url, string apiKey, bool dontParse)
-            :this(url,apiKey,dontParse,"queue")
-        {}
+            : this(url, apiKey, dontParse, "queue")
+        { }
 
         public JsonDataManipulator(string url, string apiKey, bool dontParse, string mode)
         {
@@ -165,29 +165,27 @@ namespace NZBStatusUI
             }
         }
 
-        private static string GetBaseURL(string url, string mode)
+        private string GetBaseURL(string url, string mode)
         {
             return GetBaseURL(url, mode, null);
         }
 
-        private static string GetBaseURL(string url, string mode, string name)
+        private string GetBaseURL(string url, string mode, string name)
         {
             return GetBaseURL(url, mode, name, null);
         }
 
-        private static string GetBaseURL(string url, string mode, string name, string value)
+        private string GetBaseURL(string url, string mode, string name, string value)
         {
-            if (!string.IsNullOrEmpty(name))
-            {
-                name = "&name=" + name;
-            }
+            if (string.IsNullOrEmpty(name))
+            { throw new ArgumentNullException("name"); }
+            name = "&name=" + name;
 
-            if (!string.IsNullOrEmpty(value))
-            {
-                value = "&value=" + value;
-            }
+            if (string.IsNullOrEmpty(value))
+            { throw new ArgumentNullException("value"); }
+            value = "&value=" + value;
 
-            return string.Format("{0}/sabnzbd/api?mode={1}{2}{3}&output=json", url, mode, name, value);
+            return string.Format("http://{0}/sabnzbd/api?mode={1}{2}{3}&output=json", url, mode, name, value);
         }
 
         private bool InitializeData()
@@ -254,7 +252,7 @@ namespace NZBStatusUI
 
         private void CommandFinished(object senderm, DownloadStringCompletedEventArgs eventArgs)
         {
-            
+
             if (!eventArgs.Cancelled && eventArgs.Error == null)
             {
                 // BUG resolve what happens when wrong api is supplied
