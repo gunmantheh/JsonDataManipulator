@@ -45,12 +45,26 @@ namespace NZBStatusUI
             get { return GetCurrentSlotValue<decimal>("mbleft"); }
         }
 
+        public decimal CurrentMB
+        {
+            get { return GetCurrentSlotValue<decimal>("mb"); }
+        }
+
         public int TotalPercentage
         {
             get
             {
-                var downloaded = (TotalMB - MBLeft);
-                return TotalMB > 0 ? Convert.ToInt32(Math.Round(downloaded * 100 / TotalMB, 0)) : 0;
+                var downloaded = (CurrentMB - MBLeft);
+                return TotalMB > 0 ? Convert.ToInt32(Math.Round(downloaded * 100 / CurrentMB, 0)) : 0;
+            }
+        }
+
+        public int CurrentPercentage
+        {
+            get
+            {
+                var downloaded = (CurrentMB - MBLeft);
+                return TotalMB > 0 ? Convert.ToInt32(Math.Round(downloaded * 100 / CurrentMB, 0)) : 0;
             }
         }
 
@@ -177,12 +191,7 @@ namespace NZBStatusUI
 
         private string GetBaseURL(string url, string mode, string name, string value)
         {
-            if (string.IsNullOrEmpty(name))
-            { throw new ArgumentNullException("name"); }
             name = "&name=" + name;
-
-            if (string.IsNullOrEmpty(value))
-            { throw new ArgumentNullException("value"); }
             value = "&value=" + value;
 
             return string.Format("http://{0}/sabnzbd/api?mode={1}{2}{3}&output=json", url, mode, name, value);
