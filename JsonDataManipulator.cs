@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using System.Net;
 using JsonDataManipulator.DTOs;
 using JsonDataManipulator.Enums;
@@ -18,6 +19,7 @@ namespace NZBStatusUI
         private readonly string _apiKey;
         private JToken _jsonString;
         private JArray _slots;
+        private JArray _categories;
         private readonly WebClient _webClient;
         private csEnum _connectionStatus;
         private csEnum _connectionCommandStatus;
@@ -45,6 +47,11 @@ namespace NZBStatusUI
             get { return GetCurrentSlotValue<decimal>("mbleft"); }
         }
 
+        public decimal TotalMBLeft
+        {
+            get { return GetRootValue<decimal>("mbleft"); }
+        }
+
         public decimal CurrentMB
         {
             get { return GetCurrentSlotValue<decimal>("mb"); }
@@ -55,7 +62,7 @@ namespace NZBStatusUI
             get
             {
                 var downloaded = (CurrentMB - MBLeft);
-                return TotalMB > 0 ? Convert.ToInt32(Math.Round(downloaded * 100 / CurrentMB, 0)) : 0;
+                return TotalMB > 0 && CurrentMB > 0 ? Convert.ToInt32(Math.Round(downloaded * 100 / CurrentMB, 0)) : 0;
             }
         }
 
@@ -64,7 +71,7 @@ namespace NZBStatusUI
             get
             {
                 var downloaded = (CurrentMB - MBLeft);
-                return TotalMB > 0 ? Convert.ToInt32(Math.Round(downloaded * 100 / CurrentMB, 0)) : 0;
+                return TotalMB > 0 && CurrentMB > 0 ? Convert.ToInt32(Math.Round(downloaded * 100 / CurrentMB, 0)) : 0;
             }
         }
 
@@ -127,6 +134,11 @@ namespace NZBStatusUI
             return result;
         }
 
+        public List<string> GetCategories()
+        {
+            return _categories.Select(slot => (slot.ToString())).ToList();
+        }
+
         private TClassType GetRootValue<TClassType>(string key)
         {
             JToken token = _jsonString.SelectToken(key);
@@ -165,6 +177,7 @@ namespace NZBStatusUI
             _url = GetBaseURL(url, mode);
             _apiKey = apiKey;
             _slots = new JArray();
+            _categories = new JArray();
             _jsonString = new JObject();
             _webClient = new WebClient();
             _errorList = new List<string>();
@@ -204,6 +217,7 @@ namespace NZBStatusUI
             {
                 _jsonString = JObject.Parse(_result ?? "{}").GetValue("queue") ?? new JObject();
                 _slots = (JArray)_jsonString["slots"] ?? new JArray();
+                _categories = (JArray)_jsonString["categories"] ?? new JArray();
                 // this ensures that the true will be returned on next pass only where there is new data downloaded
                 _result = string.Empty;
                 return true;
