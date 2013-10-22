@@ -134,9 +134,12 @@ namespace NZBStatusUI
             return result;
         }
 
-        public List<string> GetCategories()
+        public List<string> Categories
         {
-            return _categories.Select(slot => (slot.ToString())).ToList();
+            get
+            {
+                return _categories.Select(slot => (slot.ToString())).ToList();
+            }
         }
 
         private TClassType GetRootValue<TClassType>(string key)
