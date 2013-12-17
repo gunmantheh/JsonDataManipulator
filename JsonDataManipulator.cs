@@ -15,15 +15,19 @@ namespace NZBStatusUI
     public class JsonDataManipulator
     {
         private readonly string _url;
+        private readonly string _urlHistory;
         private readonly string _baseURL;
         private readonly string _apiKey;
         private JToken _jsonString;
         private JArray _slots;
+        private JArray _history;
         private JArray _categories;
         private readonly WebClient _webClient;
+        private readonly WebClient _webClientHistory;
         private csEnum _connectionStatus;
         private csEnum _connectionCommandStatus;
         private string _result;
+        private string _resultHistory;
         private bool _commandResult;
         private readonly List<string> _errorList;
         private string _lastError;
@@ -134,6 +138,16 @@ namespace NZBStatusUI
             return result;
         }
 
+        public HashSet<History> GetHistory(int noOfRows)
+        {
+            var result = new HashSet<History>();
+            foreach (JToken slot in _history)
+            {
+                result.Add(JsonConvert.DeserializeObject<History>(slot.ToString()));
+            }
+            return result;
+        }
+
         public List<string> Categories
         {
             get
@@ -178,13 +192,17 @@ namespace NZBStatusUI
         {
             _baseURL = url;
             _url = GetBaseURL(url, mode);
+            _urlHistory = GetBaseURL(url, "history");
             _apiKey = apiKey;
             _slots = new JArray();
+            _history = new JArray();
             _categories = new JArray();
             _jsonString = new JObject();
             _webClient = new WebClient();
+            _webClientHistory = new WebClient();
             _errorList = new List<string>();
             _webClient.DownloadStringCompleted += DownloadFinished;
+            _webClientHistory.DownloadStringCompleted += DownloadFinishedHistory;
             if (!dontParse)
             {
                 InitializeData();
@@ -215,7 +233,10 @@ namespace NZBStatusUI
 
         private bool InitializeData()
         {
+            bool returnVal = false;
+
             GetData();
+
             if (!string.IsNullOrEmpty(_result) && _connectionStatus == csEnum.Ok)
             {
                 _jsonString = JObject.Parse(_result ?? "{}").GetValue("queue") ?? new JObject();
@@ -223,9 +244,18 @@ namespace NZBStatusUI
                 _categories = (JArray)_jsonString["categories"] ?? new JArray();
                 // this ensures that the true will be returned on next pass only where there is new data downloaded
                 _result = string.Empty;
-                return true;
+                returnVal = true;
             }
-            return false;
+
+            if (!string.IsNullOrEmpty(_resultHistory) && _connectionStatus == csEnum.Ok)
+            {
+                _jsonString = JObject.Parse(_resultHistory ?? "{}").GetValue("history") ?? new JObject();
+                _history = (JArray)_jsonString["slots"] ?? new JArray();
+                // this ensures that the true will be returned on next pass only where there is new data downloaded
+                _resultHistory = string.Empty;
+                returnVal = true && returnVal;
+            }
+            return returnVal;
         }
 
         private void GetData()
@@ -236,6 +266,12 @@ namespace NZBStatusUI
                 {
                     var url = new Uri(string.Format("{0}&apikey={1}", _url, _apiKey));
                     _webClient.DownloadStringAsync(url);
+                }
+
+                if (!_webClientHistory.IsBusy && !string.IsNullOrEmpty(_apiKey) && !string.IsNullOrEmpty(_baseURL))
+                {
+                    var url = new Uri(string.Format("{0}&apikey={1}", _urlHistory, _apiKey));
+                    _webClientHistory.DownloadStringAsync(url);
                 }
             }
             catch (WebException e)
@@ -272,6 +308,23 @@ namespace NZBStatusUI
                 if (eventArgs.Error != null)
                 {
                     LogError(eventArgs.Error, "DownloadFinished");
+                }
+            }
+        }
+
+        private void DownloadFinishedHistory(object senderm, DownloadStringCompletedEventArgs eventArgs)
+        {
+            if (!eventArgs.Cancelled && eventArgs.Error == null)
+            {
+                // BUG resolve what happens when wrong api is supplied
+                _resultHistory = eventArgs.Result;
+                _connectionStatus = csEnum.Ok;
+            }
+            else
+            {
+                if (eventArgs.Error != null)
+                {
+                    LogError(eventArgs.Error, "DownloadFinishedHistory");
                 }
             }
         }
