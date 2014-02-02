@@ -8,9 +8,8 @@ using JsonDataManipulator.Enums;
 using JsonDataManipulator.Helpers;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using csEnum = JsonDataManipulator.Enums.ConnectionStatus;
 
-namespace NZBStatusUI
+namespace JsonDataManipulator
 {
     public class JsonDataManipulator
     {
@@ -24,8 +23,8 @@ namespace NZBStatusUI
         private JArray _categories;
         private readonly WebClient _webClient;
         private readonly WebClient _webClientHistory;
-        private csEnum _connectionStatus;
-        private csEnum _connectionCommandStatus;
+        private ConnectionStatus _connectionStatus;
+        private ConnectionStatus _connectionCommandStatus;
         private string _result;
         private string _resultHistory;
         private bool _commandResult;
@@ -99,7 +98,7 @@ namespace NZBStatusUI
             get { return GetRootValue<decimal>("mb") - GetRootValue<decimal>("mbleft"); }
         }
 
-        public csEnum ConnectionStatus()
+        public ConnectionStatus ConnectionStatus()
         {
             return _connectionStatus;
         }
@@ -213,12 +212,7 @@ namespace NZBStatusUI
             }
         }
 
-        private string GetBaseURL(string url, string mode)
-        {
-            return GetBaseURL(url, mode, null);
-        }
-
-        private string GetBaseURL(string url, string mode, string name)
+        private string GetBaseURL(string url, string mode, string name = null)
         {
             return GetBaseURL(url, mode, name, null);
         }
@@ -237,9 +231,9 @@ namespace NZBStatusUI
 
             GetData();
 
-            if (!string.IsNullOrEmpty(_result) && _connectionStatus == csEnum.Ok)
+            if (!string.IsNullOrEmpty(_result) && _connectionStatus == Enums.ConnectionStatus.Ok)
             {
-                _jsonString = JObject.Parse(_result ?? "{}").GetValue("queue") ?? new JObject();
+                _jsonString = JObject.Parse(_result).GetValue("queue") ?? new JObject();
                 _slots = (JArray)_jsonString["slots"] ?? new JArray();
                 _categories = (JArray)_jsonString["categories"] ?? new JArray();
                 // this ensures that the true will be returned on next pass only where there is new data downloaded
@@ -247,9 +241,9 @@ namespace NZBStatusUI
                 returnVal = true;
             }
 
-            if (!string.IsNullOrEmpty(_resultHistory) && _connectionStatus == csEnum.Ok)
+            if (!string.IsNullOrEmpty(_resultHistory) && _connectionStatus == Enums.ConnectionStatus.Ok)
             {
-                _jsonString = JObject.Parse(_resultHistory ?? "{}").GetValue("history") ?? new JObject();
+                _jsonString = JObject.Parse(_resultHistory).GetValue("history") ?? new JObject();
                 _history = (JArray)_jsonString["slots"] ?? new JArray();
                 // this ensures that the true will be returned on next pass only where there is new data downloaded
                 _resultHistory = string.Empty;
@@ -280,11 +274,11 @@ namespace NZBStatusUI
                 switch (e.Status)
                 {
                     case WebExceptionStatus.Timeout:
-                        _connectionStatus = csEnum.Timeout;
+                        _connectionStatus = Enums.ConnectionStatus.Timeout;
                         break;
                     case WebExceptionStatus.ConnectFailure:
                     case WebExceptionStatus.NameResolutionFailure:
-                        _connectionStatus = csEnum.CantConnect;
+                        _connectionStatus = Enums.ConnectionStatus.CantConnect;
                         break;
                 }
             }
@@ -301,7 +295,7 @@ namespace NZBStatusUI
             {
                 // BUG resolve what happens when wrong api is supplied
                 _result = eventArgs.Result;
-                _connectionStatus = csEnum.Ok;
+                _connectionStatus = Enums.ConnectionStatus.Ok;
             }
             else
             {
@@ -318,7 +312,7 @@ namespace NZBStatusUI
             {
                 // BUG resolve what happens when wrong api is supplied
                 _resultHistory = eventArgs.Result;
-                _connectionStatus = csEnum.Ok;
+                _connectionStatus = Enums.ConnectionStatus.Ok;
             }
             else
             {
@@ -336,7 +330,7 @@ namespace NZBStatusUI
             {
                 // BUG resolve what happens when wrong api is supplied
                 _commandResult = JObject.Parse(eventArgs.Result).Value<bool>("status");
-                _connectionCommandStatus = csEnum.Ok;
+                _connectionCommandStatus = Enums.ConnectionStatus.Ok;
             }
             else
             {
@@ -413,11 +407,11 @@ namespace NZBStatusUI
                 switch (e.Status)
                 {
                     case WebExceptionStatus.Timeout:
-                        _connectionStatus = csEnum.Timeout;
+                        _connectionStatus = Enums.ConnectionStatus.Timeout;
                         break;
                     case WebExceptionStatus.ConnectFailure:
                     case WebExceptionStatus.NameResolutionFailure:
-                        _connectionStatus = csEnum.CantConnect;
+                        _connectionStatus = Enums.ConnectionStatus.CantConnect;
                         break;
                 }
             }
