@@ -123,5 +123,5 @@
 @goto end
 
 :end
-
+chcp 850
 msbuild JsonDataManipulator.csproj
